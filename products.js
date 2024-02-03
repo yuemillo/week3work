@@ -1,15 +1,19 @@
 import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
     const site =  'https://vue3-course-api.hexschool.io/v2/';
+    import pagintion from './Pagintion.js';
+    import ProductModal from './ProductModal.js';
+    import DelProductModal from './DelProductModal.js';
 
-    let productModal = null;
-    let delProductModal = null;
+    // let productModal = null;
+    // let delProductModal = null;
 
     const app = createApp({
         data(){
             return{
                 apiPath : 'jslong',
                 products: [],
+                pages:{},
                 tempProduct: {
                 imageUrl:'',
                 }, //Modal代入資料
@@ -17,12 +21,22 @@ import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
             };
         },
         methods: {
-            getProducts(){
-                const api = `${site}api/${this.apiPath}/admin/products`;
+            checkAdmin(){
+                      const url = `${site}/api/user/check`;
+                      axios.post(url)
+                        .then((res)=>{
+                          this.getProducts();
+                        }).catch((err)=>{
+                          window.location = 'login.html';
+                        });
+                    },
+            getProducts(page = 1){
+                const api = `${site}api/${this.apiPath}/admin/products?page=${page}`;
                 axios.get(api)
                 .then(res => {
                     console.log(res);
                     this.products = res.data.products;
+                    this.pages = res.data.pagination;
                 });
             },
             openModal(status, product){
@@ -33,17 +47,21 @@ import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
                 imageUrl:[],
             };
             this.isNew = true;
-            productModal.show();
+            // productModal.show();
+            //用外層的ref控制內層的methods
+            this.$refs.controlModal.openModal();
           } else if (status === "edit"){
             this.tempProduct = {...product};
             if(!Array.isArray(this.tempProduct.imagesUrl)){
                 this.tempProduct.imagesUrl = []
             }
             this.isNew = false;
-            productModal.show();
+            // productModal.show();
+            this.$refs.controlModal.openModal();
           } else if (status === "delete"){
             this.tempProduct = {...product};
-            delProductModal.show();
+            this.$refs.controlDelModal.openModal();
+            //delProductModal.show();
           }
             },
             updateProduct(){
@@ -61,8 +79,11 @@ import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
                 .then(res => {
                     console.log(res);
                    this.getProducts();
-                   productModal.hide();
+                //    productModal.hide();
+                this.$refs.controlModal.closeModal();
                    this.tempProduct = {};
+            }).catch(err =>{
+                alert(err.data.message)
             });
         },
             deleteProduct(){
@@ -71,7 +92,7 @@ import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
                 .then(res => {
                     console.log(res);
                    this.getProducts();
-                   delProductModal.hide();
+                   this.$refs.controlDelModal.closeModal();
             });
             },
         },
@@ -83,10 +104,16 @@ import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
                 //儲存token避免重複登入
                 this.getProducts();
 
-                productModal = new bootstrap.Modal(this.$refs.productModal);
-                //用一個new把modal變為實體
-                delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
                 
+                //用一個new把modal變為實體
+                //delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
+                this.checkAdmin()
+        },
+        //區域註冊,注意要加S
+        components:{
+            pagintion,
+            ProductModal,
+            DelProductModal
         }
     });
 
